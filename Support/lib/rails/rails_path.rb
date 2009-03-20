@@ -190,7 +190,9 @@ class RailsPath
     if file_type == :view
       tail.split('/').slice(0...-2)
     else
-      tail.split('/').slice(0...-1)
+      # supports the situation when the structures are different between models and controllers 
+      # tail.split('/').slice(0...-1)
+      ""
     end
   end
 
@@ -217,6 +219,9 @@ class RailsPath
     if controller_names.is_a?(Array)
       for name in controller_names
         return name if File.exists?(File.join(base_path, name + extn))
+        
+        # searches in sub directories
+        Dir.glob("#{base_path}/**/#{name}#{extn}") { |file_in_subdir| return name }
       end
       controller_names = controller_names.first
     end
@@ -241,6 +246,15 @@ class RailsPath
     end
   end
 
+  def prompt(msg)
+    TextMate::UI.request_confirmation(
+      :button1 => "OK",
+      :button2 => "Cancel",
+      :title => "Debug",
+      :prompt => msg
+    )
+  end
+
   def rails_path_for(type)    
     return nil if file_type.nil?
     return rails_path_for_view if type == :view
@@ -248,10 +262,19 @@ class RailsPath
       base_path = File.join(rails_root, stubs[type], modules)
       extn      = default_extension_for(type)
       file_name = select_controller_name(type, base_path, extn)
-      RailsPath.new(File.join(base_path, file_name + extn))
+      RailsPath.new( target_file_path(base_path, file_name, extn) )
     else
       puts "There needs to be a project associated with this file."
     end
+  end
+  
+  def target_file_path(base_path, file_name, extn)
+    file_path = File.join(base_path, file_name + extn)
+    
+    # searches in sub directories
+    Dir.glob("#{base_path}/**/#{file_name}#{extn}") { |file_in_subdir| return file_in_subdir } unless File.exists? file_path
+    
+    file_path
   end
 
   def rails_path_for_view
