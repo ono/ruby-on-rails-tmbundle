@@ -13,10 +13,10 @@ require 'fileutils'
 
 module AssociationMessages
   @@associations = {
-    :controller => [:functional_test, :helper, :model, :javascript, :stylesheet, :fixture, :spec],
-    :helper => [:controller, :model, :unit_test, :functional_test, :javascript, :stylesheet, :fixture, :spec],
+    :controller => [:spec, :functional_test, :helper, :model, :javascript, :stylesheet, :fixture],
+    :helper => [:spec, :controller, :model, :unit_test, :functional_test, :javascript, :stylesheet, :fixture],
     :view => [:controller, :javascript, :stylesheet, :helper, :model, :spec],
-    :model => [:unit_test, :functional_test, :controller, :helper, :fixture, :spec],
+    :model => [:spec, :unit_test, :functional_test, :controller, :helper, :fixture],
     :fixture => [:unit_test, :functional_test, :controller, :helper, :model, :spec],
     :functional_test => [:controller, :helper, :model, :unit_test, :fixture],
     :unit_test => [:model, :controller, :helper, :functional_test, :fixture],
@@ -254,6 +254,14 @@ class RailsPath
     end
   end
 
+  def prompt(msg)
+    TextMate::UI.request_confirmation(
+      :button1 => "OK",
+      :title => "Debug",
+      :prompt => msg
+    )
+  end
+
   def rails_path_for(type)    
     return nil if file_type.nil?
     return rails_path_for_view if type == :view
@@ -261,6 +269,8 @@ class RailsPath
       base_path = File.join(rails_root, stubs[type], modules)
       extn      = default_extension_for(type)
       file_name = select_controller_name(type, base_path, extn)
+      
+      # prompt "#{base_path} - #{file_name} - #{extn}"
       
       RailsPath.new( target_file_path(base_path, file_name, extn) )
     else
