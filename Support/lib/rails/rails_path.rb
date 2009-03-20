@@ -13,13 +13,15 @@ require 'fileutils'
 
 module AssociationMessages
   @@associations = {
-    :controller => [:functional_test, :helper, :model, :javascript, :stylesheet, :fixture],
-    :helper => [:controller, :model, :unit_test, :functional_test, :javascript, :stylesheet, :fixture],
-    :view => [:controller, :javascript, :stylesheet, :helper, :model],
-    :model => [:unit_test, :functional_test, :controller, :helper, :fixture],
-    :fixture => [:unit_test, :functional_test, :controller, :helper, :model],
+    :controller => [:functional_test, :helper, :model, :javascript, :stylesheet, :fixture, :spec],
+    :helper => [:controller, :model, :unit_test, :functional_test, :javascript, :stylesheet, :fixture, :spec],
+    :view => [:controller, :javascript, :stylesheet, :helper, :model, :spec],
+    :model => [:unit_test, :functional_test, :controller, :helper, :fixture, :spec],
+    :fixture => [:unit_test, :functional_test, :controller, :helper, :model, :spec],
     :functional_test => [:controller, :helper, :model, :unit_test, :fixture],
     :unit_test => [:model, :controller, :helper, :functional_test, :fixture],
+    :spec => [:model, :controller, :helper, :fixture, :lib],
+    :lib => [:spec], # lib or other places
     :javascript => [:helper, :controller],
     :stylesheet => [:helper, :controller]
   }
@@ -99,6 +101,8 @@ class RailsPath
     when :controller then name.sub!(/_controller$/, '')
     when :helper     then name.sub!(/_helper$/, '')
     when :unit_test  then name.sub!(/_test$/, '')
+    when :spec       then name.sub!(/_spec$/, '')
+    when :lib        then name
     when :view       then name = dirname.split('/').pop
     when :functional_test then name.sub!(/_controller_test$/, '')
     else
@@ -156,8 +160,11 @@ class RailsPath
       when %r{/.+/fixtures/(.+\.(yml|csv))$}            then :fixture
       when %r{/test/functional/(.+\.(rb))$}             then :functional_test
       when %r{/test/unit/(.+\.(rb))$}                   then :unit_test
+      when %r{/spec/(.+_spec\.(rb))$}                   then :spec
+      when %r{/lib/(.+\.(rb))$}                         then :lib
       when %r{/public/javascripts/(.+\.(js))$}          then :javascript
       when %r{/public/stylesheets/(?:sass/)?(.+\.(css|sass))$}  then :stylesheet
+      when %r{/lib/(.+\.(rb))$}  then :lib
       else nil
       end
     # Store the tail (modules + file) after the regexp
@@ -173,7 +180,7 @@ class RailsPath
     file_type unless @tail
     return @tail
   end
-
+ 
   def extension
     # Get the extension if it's not set yet
     file_type unless @extension
@@ -208,6 +215,7 @@ class RailsPath
     when :helper     then controller_name + '_helper'
     when :functional_test then controller_name + '_controller_test'
     when :unit_test  then Inflector.singularize(controller_name) + '_test'
+    when :spec       then @file_name + "_spec"
     when :model      then Inflector.singularize(controller_name)
     when :fixture    then Inflector.pluralize(controller_name)
     else controller_name
@@ -246,15 +254,6 @@ class RailsPath
     end
   end
 
-  def prompt(msg)
-    TextMate::UI.request_confirmation(
-      :button1 => "OK",
-      :button2 => "Cancel",
-      :title => "Debug",
-      :prompt => msg
-    )
-  end
-
   def rails_path_for(type)    
     return nil if file_type.nil?
     return rails_path_for_view if type == :view
@@ -262,6 +261,7 @@ class RailsPath
       base_path = File.join(rails_root, stubs[type], modules)
       extn      = default_extension_for(type)
       file_name = select_controller_name(type, base_path, extn)
+      
       RailsPath.new( target_file_path(base_path, file_name, extn) )
     else
       puts "There needs to be a project associated with this file."
@@ -331,6 +331,8 @@ class RailsPath
       :stylesheet => wants_haml ? 'public/stylesheets/sass' : 'public/stylesheets',
       :functional_test => 'test/functional',
       :unit_test => 'test/unit',
+      :spec => 'spec',
+      :lib => 'lib',
       :fixture => 'test/fixtures'}
   end
 

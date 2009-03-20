@@ -8,6 +8,8 @@ class CommandGoToFile
       puts "This file is not associated with any other files"
     elsif rails_path = current_file.rails_path_for(choice.to_sym)    
       if !rails_path.exists?
+        return if rails_path.content_type==current_file.content_type
+        
         rails_path, openatline, openatcol = create_file(rails_path, choice.to_sym)
         if rails_path.nil?
           TextMate.exit_discard
