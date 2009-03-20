@@ -343,7 +343,7 @@ class RailsPath
       :unit_test => 'test/unit',
       :spec => 'spec',
       :lib => 'lib',
-      :fixture => 'test/fixtures'}
+      :fixture => 'spec/fixtures'}
   end
 
   def ==(other)
