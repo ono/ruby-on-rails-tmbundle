@@ -13,15 +13,16 @@ require 'fileutils'
 
 module AssociationMessages
   @@associations = {
-    :controller => [:spec, :functional_test, :helper, :model, :javascript, :stylesheet, :fixture],
-    :helper => [:spec, :controller, :model, :unit_test, :functional_test, :javascript, :stylesheet, :fixture],
+    :controller => [:spec, :functional_test, :helper, :model, :javascript, :stylesheet, :fixture, :factory],
+    :helper => [:spec, :controller, :model, :unit_test, :functional_test, :javascript, :stylesheet, :fixture, :factory],
     :view => [:controller, :javascript, :stylesheet, :helper, :model, :spec],
-    :model => [:spec, :unit_test, :functional_test, :controller, :helper, :fixture],
-    :fixture => [:unit_test, :functional_test, :controller, :helper, :model, :spec],
+    :model => [:spec, :unit_test, :functional_test, :controller, :helper, :fixture, :factory],
+    :fixture => [:unit_test, :functional_test, :controller, :helper, :model, :spec, :factory],
+    :factory => [:unit_test, :functional_test, :controller, :helper, :model, :spec, :fixture],
     :functional_test => [:controller, :helper, :model, :unit_test, :fixture],
     :unit_test => [:model, :controller, :helper, :functional_test, :fixture],
-    :spec => [:model, :controller, :helper, :fixture, :lib],
-    :lib => [:spec], # lib or other places
+    :spec => [:model, :controller, :helper, :factory, :fixture, :lib],
+    :lib => [:spec, :factory], # lib or other places
     :javascript => [:helper, :controller],
     :stylesheet => [:helper, :controller]
   }
@@ -102,6 +103,7 @@ class RailsPath
     when :helper     then name.sub!(/_helper$/, '')
     when :unit_test  then name.sub!(/_test$/, '')
     when :spec       then name.sub!(/_spec$/, '')
+    when :factory    then name.sub!(/_factory$/, '')
     when :lib        then name
     when :view       then name = dirname.split('/').pop
     when :functional_test then name.sub!(/_controller_test$/, '')
@@ -110,6 +112,7 @@ class RailsPath
         name = Inflector.pluralize(name)
       end
     end
+    
     return name
   end
 
@@ -152,15 +155,16 @@ class RailsPath
 
     @file_type =
       case @filepath
+      when %r{/spec/(.+_spec\.(rb))$}                   then :spec
       when %r{/controllers/(.+_controller\.(rb))$}      then :controller
       when %r{/controllers/(application\.(rb))$}        then :controller
       when %r{/helpers/(.+_helper\.rb)$}                then :helper
       when %r{/views/(.+\.(#{VIEW_EXTENSIONS * '|'}))$} then :view
       when %r{/models/(.+\.(rb))$}                      then :model
       when %r{/.+/fixtures/(.+\.(yml|csv))$}            then :fixture
+      when %r{/.+/factories/(.+\.(rb))$}                then :factory
       when %r{/test/functional/(.+\.(rb))$}             then :functional_test
       when %r{/test/unit/(.+\.(rb))$}                   then :unit_test
-      when %r{/spec/(.+_spec\.(rb))$}                   then :spec
       when %r{/lib/(.+\.(rb))$}                         then :lib
       when %r{/public/javascripts/(.+\.(js))$}          then :javascript
       when %r{/public/stylesheets/(?:sass/)?(.+\.(css|sass))$}  then :stylesheet
@@ -217,7 +221,8 @@ class RailsPath
     when :unit_test  then Inflector.singularize(controller_name) + '_test'
     when :spec       then @file_name + "_spec"
     when :model      then Inflector.singularize(controller_name)
-    when :fixture    then Inflector.pluralize(controller_name)
+    when :fixture    then [Inflector.pluralize(controller_name), Inflector.singularize(controller_name)]
+    when :factory    then [Inflector.pluralize(controller_name), Inflector.singularize(controller_name)].map {|name| name + '_factory'}
     else controller_name
     end
   end
@@ -343,7 +348,8 @@ class RailsPath
       :unit_test => 'test/unit',
       :spec => 'spec',
       :lib => 'lib',
-      :fixture => 'spec/fixtures'}
+      :fixture => 'spec/fixtures',
+      :factory => 'spec/factories'}
   end
 
   def ==(other)
